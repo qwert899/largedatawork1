@@ -1,0 +1,188 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>新能源汽车销量结构 · 扇形图交互测试</title>
+    <!-- 已改为本地文件，断网也能运行 -->
+    <script src="echarts.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, "Microsoft YaHei", sans-serif;
+            background: #f5f7fa;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 20px;
+        }
+        h2 { color: #1a1a2e; margin-bottom: 6px; }
+        .subtitle { color: #888; font-size: 14px; margin-bottom: 24px; }
+        #chart {
+            width: 760px;
+            height: 480px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        }
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 20px 0 16px;
+        }
+        .controls label { font-size: 14px; color: #555; }
+        select {
+            padding: 8px 16px;
+            font-size: 14px;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            background: #fff;
+            cursor: pointer;
+        }
+        #detail {
+            width: 760px;
+            min-height: 70px;
+            background: #fff;
+            border-radius: 10px;
+            padding: 16px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+            font-size: 14px;
+            color: #444;
+            line-height: 1.8;
+        }
+        #detail strong { color: #1a1a2e; }
+        .hint { font-size: 13px; color: #999; margin-bottom: 12px; }
+        #errorTip { color: #d93025; font-size: 14px; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+
+    <h2>中国新能源汽车销量结构（2015—2024）</h2>
+    <p class="subtitle">BEV 纯电 vs PHEV 插混（含增程式） · 扇形图组件交互测试</p>
+
+    <div id="errorTip"></div>
+
+    <div class="controls">
+        <label for="yearSelect">选择年份：</label>
+        <select id="yearSelect"></select>
+    </div>
+
+    <p class="hint">💡 点击图例可筛选显示/隐藏；点击扇区会高亮并更新下方详情。</p>
+
+    <div id="chart"></div>
+    <div id="detail">点击扇区查看详细信息</div>
+
+    <script>
+        // ==================== 0. 先检查 ECharts 是否加载成功 ====================
+        if (typeof echarts === 'undefined') {
+            document.getElementById('errorTip').textContent =
+                'ECharts 未加载成功：请确认 echarts.min.js 与 index.html 在同一文件夹，且文件名完全一致。';
+            console.error('echarts is not defined，后续脚本不会执行');
+        } else {
+            initApp();
+        }
+
+        function initApp() {
+            // ==================== 1. 数据 ====================
+            const rawData = [
+                { year: 2015, bev: 24.7, phev: 8.4 },
+                { year: 2016, bev: 40.9, phev: 9.8 },
+                { year: 2017, bev: 65.2, phev: 12.5 },
+                { year: 2018, bev: 98.4, phev: 27.1 },
+                { year: 2019, bev: 97.2, phev: 23.4 },
+                { year: 2020, bev: 111.5, phev: 25.2 },
+                { year: 2021, bev: 291.6, phev: 60.5 },
+                { year: 2022, bev: 536.5, phev: 152.2 },
+                { year: 2023, bev: 668.5, phev: 281.0 },
+                { year: 2024, bev: 771.9, phev: 514.7 }
+            ];
+
+            // ==================== 2. 初始化图表 ====================
+            const chartDom = document.getElementById('chart');
+            const myChart = echarts.init(chartDom);
+            const yearSelect = document.getElementById('yearSelect');
+            const detailEl = document.getElementById('detail');
+
+            // 生成年份下拉选项
+            rawData.forEach((d, i) => {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = d.year + ' 年';
+                yearSelect.appendChild(opt);
+            });
+            yearSelect.value = rawData.length - 1;
+
+            // ==================== 3. 生成某一年的 option ====================
+            function buildOption(index) {
+                const d = rawData[index];
+                return {
+                    tooltip: {
+                        trigger: 'item',
+                        formatter: '{a}<br/>{b}：{c} 万辆（{d}%）'
+                    },
+                    legend: {
+                        orient: 'vertical',
+                        left: '8%',
+                        top: 'middle',
+                        itemGap: 16,
+                        textStyle: { fontSize: 14 }
+                    },
+                    series: [
+                        {
+                            name: d.year + '年新能源销量',
+                            type: 'pie',
+                            radius: ['0%', '62%'],
+                            center: ['50%', '50%'],
+                            data: [
+                                { name: 'BEV 纯电', value: d.bev, itemStyle: { color: '#5470c6' } },
+                                { name: 'PHEV 插混', value: d.phev, itemStyle: { color: '#fac858' } }
+                            ],
+                            label: {
+                                formatter: '{b}\n{d}%',
+                                fontSize: 14
+                            },
+                            emphasis: {
+                                itemStyle: {
+                                    shadowBlur: 12,
+                                    shadowOffsetX: 0,
+                                    shadowColor: 'rgba(0,0,0,0.3)'
+                                }
+                            },
+                            selectedMode: 'single',
+                            selectedOffset: 18
+                        }
+                    ]
+                };
+            }
+
+            // ==================== 4. 渲染与交互 ====================
+            function render(index) {
+                detailEl.innerHTML = '点击扇区查看详细信息';
+                myChart.setOption(buildOption(index), true);
+            }
+
+            yearSelect.addEventListener('change', (e) => {
+                render(Number(e.target.value));
+            });
+
+            myChart.on('click', (params) => {
+                if (params.componentType !== 'series') return;
+                const yearData = rawData[Number(yearSelect.value)];
+                const total = yearData.bev + yearData.phev;
+                const percent = ((params.value / total) * 100).toFixed(1);
+
+                detailEl.innerHTML =
+                    '<strong>' + yearData.year + ' 年 · ' + params.name + '</strong><br/>' +
+                    '销量：<strong>' + params.value + ' 万辆</strong>　' +
+                    '占比：<strong>' + percent + '%</strong>　' +
+                    '新能源总计：<strong>' + total.toFixed(1) + ' 万辆</strong>';
+            });
+
+            // ==================== 5. 首次渲染 + 自适应 ====================
+            render(rawData.length - 1);
+            window.addEventListener('resize', () => myChart.resize());
+        }
+    </script>
+
+</body>
+</html>
